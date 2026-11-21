@@ -1,0 +1,208 @@
+Recommender Systems – Practicals 1–9 Page 1
+Recommender Systems
+Practicals 1–9 | Code and Short Explanations
+Each practical includes the original code and a brief description of what it does.
+Practical 1 – Popularity-Based Recommendation
+Calculates each movie's average rating, sorts movies from highest to lowest, and displays the top three.
+import pandas as pd
+data = {
+ 'Movie': ['Avatar', 'Titanic', 'Avatar',
+ 'Inception', 'Titanic', 'Avatar'],
+ 'Rating': [5, 4, 4, 5, 5, 5]
+}
+df = pd.DataFrame(data)
+# Calculate average rating of each movie
+popular = df.groupby('Movie')['Rating'].mean()
+# Sort movies by rating
+popular = popular.sort_values(ascending=False)
+# Recommend Top 3 movies
+print("Top 3 Recommended Movies:")
+print(popular.head(3))
+Practical 2 – Similarity Measures
+Calculates Cosine Similarity and Pearson Correlation between two rating vectors, and Jaccard Similarity between two sets.
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+# User ratings
+u1 = np.array([5, 4, 0, 3])
+u2 = np.array([4, 5, 0, 3])
+# Cosine similarity
+cosine = cosine_similarity([u1], [u2])[0][0]
+# Pearson correlation
+pearson = np.corrcoef(u1, u2)[0][1]
+# Jaccard similarity
+a = {1, 2, 3, 4}
+b = {2, 3, 4, 5}
+jaccard = len(a & b) / len(a | b)
+print("Cosine Similarity:", cosine)
+print("Pearson Similarity:", pearson)
+print("Jaccard Similarity:", jaccard)
+Recommender Systems – Practicals 1–9 Page 2
+Practical 3 – Content-Based Filtering (Movie-to-Movie)
+Converts movie descriptions into TF-IDF vectors, calculates pairwise cosine similarity, and displays the two movies most
+similar to the first movie (excluding itself).
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+movies = [
+ "action adventure superhero",
+ "romantic love drama",
+ "action fighting adventure",
+ "romantic comedy love"
+]
+# Convert text into TF-IDF vectors
+tfidf = TfidfVectorizer()
+matrix = tfidf.fit_transform(movies)
+# Calculate similarity
+similarity = cosine_similarity(matrix)
+print("Similarity Matrix:")
+print(similarity)
+# Recommend movies similar to movie 1
+scores = list(enumerate(similarity[0]))
+scores = sorted(scores, key=lambda x: x[1], reverse=True)
+print("\nRecommended Movies:")
+for i, score in scores[1:3]:
+ print(movies[i])
+Practical 4 – User Profile Learning
+Builds a TF-IDF representation of a user's interests and compares it with movie descriptions to rank movies by relevance.
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+movies = [
+ "action adventure",
+ "romantic drama",
+ "action thriller",
+ "comedy entertainment"
+]
+# User likes action movies
+user_profile = ["action adventure thriller"]
+# Convert movies and user profile into vectors
+tfidf = TfidfVectorizer()
+movie_matrix = tfidf.fit_transform(movies)
+user_matrix = tfidf.transform(user_profile)
+# Calculate similarity
+scores = cosine_similarity(user_matrix, movie_matrix)[0]
+# Rank movies
+ranking = sorted(enumerate(scores),
+ key=lambda x: x[1],
+ reverse=True)
+print("Recommended Movies:")
+for i, score in ranking:
+ print(movies[i], ":", round(score, 2))
+Recommender Systems – Practicals 1–9 Page 3
+Practical 5 – User-Based Collaborative Filtering
+Calculates similarity between users' rating patterns, finds the user most similar to User1, and tries to recommend items
+rated by that user but unrated by User1. With the supplied data, the recommendation list is empty because User1 has rated
+every movie.
+import pandas as pd
+from sklearn.metrics.pairwise import cosine_similarity
+data = {
+ 'Movie1': [5, 4, 1],
+ 'Movie2': [4, 5, 2],
+ 'Movie3': [1, 2, 5]
+}
+df = pd.DataFrame(data, index=['User1', 'User2', 'User3'])
+# Calculate user similarity
+similarity = cosine_similarity(df)
+similarity_df = pd.DataFrame(
+ similarity,
+ index=df.index,
+ columns=df.index
+)
+print("User Similarity:")
+print(similarity_df)
+# Find user similar to User1
+similar_users = similarity_df.loc['User1'].drop('User1')
+best_user = similar_users.idxmax()
+print("\nMost Similar User:", best_user)
+# Recommend movies not rated by User1 (0 means unrated)
+recommendations = df.loc[best_user][df.loc['User1'] == 0]
+print("\nRecommendations:")
+print(recommendations)
+Practical 6 – Item-Based Collaborative Filtering
+Calculates similarity between movies using their rating vectors across users, then ranks other movies by similarity to
+Movie1.
+import pandas as pd
+from sklearn.metrics.pairwise import cosine_similarity
+data = {
+ 'User1': [5, 4, 1],
+ 'User2': [4, 5, 2],
+ 'User3': [1, 2, 5]
+}
+df = pd.DataFrame(
+ data,
+ index=['Movie1', 'Movie2', 'Movie3']
+)
+# Calculate item similarity
+similarity = cosine_similarity(df)
+similarity_df = pd.DataFrame(
+ similarity,
+ index=df.index,
+ columns=df.index
+)
+print("Item Similarity:")
+print(similarity_df)
+# Find movies similar to Movie1
+similar_movies = similarity_df['Movie1'].drop('Movie1')
+print("\nMovies similar to Movie1:")
+print(similar_movies.sort_values(ascending=False))
+Recommender Systems – Practicals 1–9 Page 4
+Practical 7 – Matrix Factorization using Truncated SVD
+Reduces the user-item rating matrix to two latent components, then reconstructs an approximate rating matrix. Zero entries
+are treated as numeric zeros by this implementation, not automatically as missing values.
+import numpy as np
+from sklearn.decomposition import TruncatedSVD
+# User-item rating matrix
+ratings = np.array([
+ [5, 4, 0],
+ [4, 0, 2],
+ [1, 2, 5]
+])
+# Apply SVD
+svd = TruncatedSVD(n_components=2)
+user_features = svd.fit_transform(ratings)
+# Reconstruct rating matrix
+predicted = np.dot(
+ user_features,
+ svd.components_
+)
+print("Original Ratings:")
+print(ratings)
+print("\nPredicted Ratings:")
+print(np.round(predicted, 2))
+Practical 8 – Evaluation Metrics (RMSE, Precision, Recall)
+RMSE measures rating prediction error. Precision measures the fraction of recommended items that are relevant; recall
+measures the fraction of relevant items that were recommended.
+from sklearn.metrics import mean_squared_error
+import numpy as np
+# Actual ratings
+actual = [5, 4, 3, 2]
+# Predicted ratings
+predicted = [4, 4, 3, 1]
+# RMSE
+rmse = np.sqrt(mean_squared_error(actual, predicted))
+print("RMSE:", round(rmse, 2))
+# Actual relevant items
+actual_items = {1, 2, 3}
+# Recommended top items
+recommended_items = {1, 2}
+# Precision
+precision = len(actual_items & recommended_items) / len(recommended_items)
+# Recall
+recall = len(actual_items & recommended_items) / len(actual_items)
+print("Precision:", round(precision, 2))
+print("Recall:", round(recall, 2))
+Recommender Systems – Practicals 1–9 Page 5
+Practical 9 – Hybrid Recommendation System
+Combines Content-Based and Collaborative Filtering scores with equal weights (50% each), then sorts movies by their
+combined score in descending order.
+import numpy as np
+# Content-based similarity scores
+content = np.array([0.9, 0.7, 0.5])
+# Collaborative filtering scores
+collaborative = np.array([0.6, 0.8, 0.9])
+# Combine both scores
+hybrid = 0.5 * content + 0.5 * collaborative
+# Rank recommendations
+movies = ['Movie1', 'Movie2', 'Movie3']
+ranking = np.argsort(hybrid)[::-1]
+print("Hybrid Recommendations:")
+for i in ranking:
+ print(movies[i], ":", round(hybrid[i], 2))
